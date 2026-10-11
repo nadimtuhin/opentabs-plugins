@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 480" width="100%" height="480">
+  <defs>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="activeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    .diagram-bg { fill: #0a0e17; }
+    .node-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; font-size: 15px; fill: #f8fafc; }
+    .node-subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 400; font-size: 12px; fill: #94a3b8; }
+    .node-tag { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 600; font-size: 11px; fill: #38bdf8; }
+    .arrow-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 500; font-size: 11px; fill: #64748b; }
+    .diagram-heading { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 800; font-size: 20px; fill: #f1f5f9; letter-spacing: -0.5px; }
+    .diagram-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 400; font-size: 13px; fill: #64748b; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="1000" height="480" rx="16" class="diagram-bg" stroke="#1e293b" stroke-width="1.5" />
+
+  <!-- Diagram Title Header -->
+  <text x="50" y="44" class="diagram-heading">OpenTabs Plugin Execution Flow</text>
+  <text x="50" y="66" class="diagram-sub">How AI agent tool calls execute securely inside authenticated browser tabs</text>
+
+  <!-- Step 1: AI Agent -->
+  <g transform="translate(50, 100)" filter="url(#shadow)">
+    <rect width="260" height="130" rx="12" fill="url(#cardBg)" stroke="#38bdf8" stroke-width="1.2" />
+    <circle cx="28" cy="28" r="8" fill="#38bdf8" />
+    <text x="44" y="32" class="node-title">1. AI Agent</text>
+    <text x="20" y="62" class="node-subtitle">Claude Code · Hermes · Codex</text>
+    <text x="20" y="82" class="node-subtitle">Dispatches MCP tool invocations</text>
+    <rect x="20" y="96" width="120" height="20" rx="4" fill="#0f172a" />
+    <text x="28" y="110" class="node-tag">tools/call (JSON-RPC)</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <g stroke="#38bdf8" stroke-width="1.5" fill="none">
+    <path d="M 310 165 L 365 165" stroke-dasharray="4 4" />
+    <polygon points="365,160 375,165 365,170" fill="#38bdf8" stroke="none" />
+  </g>
+  <text x="320" y="155" class="arrow-text">HTTP / SSE</text>
+
+  <!-- Step 2: OpenTabs MCP Server -->
+  <g transform="translate(375, 100)" filter="url(#shadow)">
+    <rect width="260" height="130" rx="12" fill="url(#cardBg)" stroke="#818cf8" stroke-width="1.2" />
+    <circle cx="28" cy="28" r="8" fill="#818cf8" />
+    <text x="44" y="32" class="node-title">2. OpenTabs Server</text>
+    <text x="20" y="62" class="node-subtitle">Local daemon on 127.0.0.1:9515</text>
+    <text x="20" y="82" class="node-subtitle">Permission checks &amp; schema registry</text>
+    <rect x="20" y="96" width="136" height="20" rx="4" fill="#0f172a" />
+    <text x="28" y="110" class="node-tag" fill="#818cf8">Bearer Token Verified</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <g stroke="#818cf8" stroke-width="1.5" fill="none">
+    <path d="M 635 165 L 690 165" stroke-dasharray="4 4" />
+    <polygon points="690,160 700,165 690,170" fill="#818cf8" stroke="none" />
+  </g>
+  <text x="645" y="155" class="arrow-text">WebSocket</text>
+
+  <!-- Step 3: Chrome Extension Bridge -->
+  <g transform="translate(700, 100)" filter="url(#shadow)">
+    <rect width="250" height="130" rx="12" fill="url(#cardBg)" stroke="#a855f7" stroke-width="1.2" />
+    <circle cx="28" cy="28" r="8" fill="#a855f7" />
+    <text x="44" y="32" class="node-title">3. Chrome Extension</text>
+    <text x="20" y="62" class="node-subtitle">MV3 Service Worker &amp; Offscreen</text>
+    <text x="20" y="82" class="node-subtitle">Resolves matching tab ID</text>
+    <rect x="20" y="96" width="128" height="20" rx="4" fill="#0f172a" />
+    <text x="28" y="110" class="node-tag" fill="#c084fc">Scripting API Bridge</text>
+  </g>
+
+  <!-- Arrow 3 down to 4 -->
+  <g stroke="#a855f7" stroke-width="1.5" fill="none">
+    <path d="M 825 230 L 825 290" stroke-dasharray="4 4" />
+    <polygon points="820,290 825,300 830,290" fill="#a855f7" stroke="none" />
+  </g>
+  <text x="835" y="270" class="arrow-text">executeScript (MAIN World)</text>
+
+  <!-- Step 4: Injected Plugin IIFE Adapters -->
+  <g transform="translate(50, 300)" filter="url(#shadow)">
+    <rect width="900" height="145" rx="12" fill="url(#cardBg)" stroke="#10b981" stroke-width="1.2" />
+    <g transform="translate(24, 20)">
+      <circle cx="8" cy="8" r="8" fill="#10b981" />
+      <text x="24" y="13" class="node-title">4. Injected Plugin Runtime (MAIN World · Jitless Safe)</text>
+      <text x="24" y="32" class="node-subtitle">Executes inside target tab with active session cookies and credentials</text>
+    </g>
+
+    <!-- 4 Sub-blocks for our 4 plugins -->
+    <g transform="translate(24, 65)">
+      <!-- FB Friends -->
+      <rect width="202" height="60" rx="8" fill="#0f172a" stroke="#1e293b" />
+      <text x="12" y="24" class="node-title" font-size="13">Facebook Manager</text>
+      <text x="12" y="44" class="node-subtitle" font-size="11">GraphQL · DTSG · Triage</text>
+
+      <!-- Greenhouse -->
+      <rect x="216" width="202" height="60" rx="8" fill="#0f172a" stroke="#1e293b" />
+      <text x="228" y="24" class="node-title" font-size="13">Greenhouse Apply</text>
+      <text x="228" y="44" class="node-subtitle" font-size="11">React Fiber · Resume Attach</text>
+
+      <!-- Toptal -->
+      <rect x="432" width="202" height="60" rx="8" fill="#0f172a" stroke="#1e293b" />
+      <text x="444" y="24" class="node-title" font-size="13">Toptal Portal</text>
+      <text x="444" y="44" class="node-subtitle" font-size="11">Cover Letters · Profile Forms</text>
+
+      <!-- Upwork -->
+      <rect x="648" width="202" height="60" rx="8" fill="#0f172a" stroke="#1e293b" />
+      <text x="660" y="24" class="node-title" font-size="13">Upwork Profile</text>
+      <text x="660" y="44" class="node-subtitle" font-size="11">Token Chips · Bio Updater</text>
+    </g>
+  </g>
+</svg>
