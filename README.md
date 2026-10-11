@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/cover-banner.png" alt="OpenTabs Plugins Cover Banner" width="100%" />
+  <img src="./assets/cover-banner.png" alt="OpenTabs Plugins Banner" width="100%" />
 </p>
 
 # OpenTabs Plugins
@@ -7,10 +7,6 @@
 Collection of browser automation plugins for [OpenTabs](https://github.com/opentabs-dev/opentabs).
 
 Each plugin runs inside your authenticated Chrome or Chromium browser tab via the OpenTabs extension. All actions execute directly in your active browser session without external API keys, service tokens, or OAuth applications.
-
-<p align="center">
-  <img src="./assets/platforms-ecosystem.png" alt="Supported Platforms Ecosystem" width="85%" />
-</p>
 
 ## Plugins Overview
 
@@ -33,10 +29,6 @@ Each plugin runs inside your authenticated Chrome or Chromium browser tab via th
 2. **OpenTabs MCP Server:** Validates tool permissions, parses arguments, and routes the invocation to the extension over a local WebSocket (`ws://127.0.0.1:9515/ws`).
 3. **Chrome Extension (MV3):** Finds the matching target tab by URL pattern and communicates with the injected adapter.
 4. **Plugin Adapter IIFE:** Executes inside the tab's MAIN world context. Interacts with the live DOM, GraphQL endpoints, and React Fiber stores using active session cookies.
-
-<p align="center">
-  <img src="./assets/browser-automation.png" alt="Browser Automation Overview" width="85%" />
-</p>
 
 ---
 
