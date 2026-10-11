@@ -1,0 +1,21 @@
+{
+  "name": "opentabs-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Collection of community OpenTabs browser automation plugins for AI agents",
+  "author": "Nadim Tuhin <nadimtuhin@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nadimtuhin/opentabs-plugins.git"
+  },
+  "workspaces": [
+    "plugins/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces build",
+    "type-check": "npm run --workspaces type-check",
+    "lint": "npm run --workspaces lint",
+    "check": "npm run --workspaces check"
+  }
+}
