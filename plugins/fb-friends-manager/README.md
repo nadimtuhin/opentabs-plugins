@@ -13,6 +13,12 @@ Facebook friend requests and friends management with intelligent triage suggesti
 | `batch_triage_requests` | Batch-process accept and delete actions with safety delays to respect Facebook rate limits | Write |
 | `get_friends_overview` | Return statistical overview and health metrics: mutual count tiers and request age distribution | Read |
 
+## Example
+
+```sh
+opentabs tool call fb-friends-manager__suggest_triage '{"min_mutual_to_accept":15,"limit":100}'
+```
+
 ## How It Works
 
 This plugin runs inside your Facebook tab (`*://*.facebook.com/*`) through the [OpenTabs](https://opentabs.dev) Chrome extension. It uses your existing authenticated browser session — no API tokens or OAuth apps required. All operations run directly in your browser with your active permissions.

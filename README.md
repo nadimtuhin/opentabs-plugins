@@ -54,24 +54,27 @@ Inspects and populates Greenhouse job application forms in real time, handling c
 ---
 
 ### 3. Toptal Apply & Profile Manager (`toptal`)
-**Domain:** `*://talent.toptal.com/*` · **Tools:** 7
+**Domain:** `*://talent.toptal.com/*` · **Tools:** 9
 
 Automates job application drafting and talent profile maintenance on the Toptal Talent Portal.
 
-- **Job Application State Tracking (`get_apply_state`):** Reads the open application modal, job requirements, and cover letter character limits.
-- **Cover Letter Drafting (`fill_cover_letter`):** Injects targeted, role-specific cover letter drafts directly into the modal textarea without submitting.
+- **Job Application State Tracking (`get_apply_state`):** Reads the apply wizard step, rate, cover letter length, and terms checkbox.
+- **Cover Letter Drafting (`fill_cover_letter`):** Types a 380-2000 character cover letter and ticks the terms box without submitting.
 - **Profile Section Management (`get_profile_form`, `fill_profile_fields`, `save_profile`):** Reads and updates freelancer profile sections (experience, certifications, work history) across `/settings/profile/*`.
-- **Custom UI Component Handlers (`pick_option`, `set_year`):** Interacts with Toptal's custom date/year pickers and option radios.
+- **Custom UI Component Handlers (`pick_option`, `set_year`):** Drives Toptal's type-ahead pickers (industries, skills) and work-experience year selects.
+- **Skills Management (`add_skill`, `remove_skill`):** Adds a skill with proficiency and years, or removes one, on the Skills page and saves.
 
 | Tool | Action | Description |
 |---|---|---|
-| `get_apply_state` | Read | Inspects open application modal state and character restrictions |
-| `fill_cover_letter` | Write | Injects cover letter text into the application modal |
+| `get_apply_state` | Read | Reads the apply wizard step, rate, cover letter length, and terms state |
+| `fill_cover_letter` | Write | Types the cover letter and ticks the terms box; never submits |
 | `get_profile_form` | Read | Reads editable inputs, limits, and validation rules for a profile section |
 | `fill_profile_fields` | Write | Sets string inputs and boolean checkboxes by key |
-| `save_profile` | Write | Triggers the section Save action and validates state persistence |
-| `pick_option` | Write | Selects option radio or dropdown components |
-| `set_year` | Write | Sets year picker values for employment and education records |
+| `save_profile` | Write | Clicks the section Save button and reports validation errors |
+| `pick_option` | Write | Selects one option in the `industryIds` or `skills` type-ahead picker |
+| `set_year` | Write | Sets the `startDate` or `endDate` year on a work-experience form |
+| `add_skill` | Write | Adds one skill with proficiency (`COMPETENT`/`STRONG`/`EXPERT`) and years, then saves |
+| `remove_skill` | Write | Removes one skill by exact name, then saves |
 
 ---
 
@@ -80,18 +83,18 @@ Automates job application drafting and talent profile maintenance on the Toptal 
 
 Maintains Upwork freelancer profile content directly through the logged-in interface without private API dependencies.
 
-- **Live Profile Inspection (`get_profile`):** Extracts active professional title, overview biography, selected skill chips, and assigned categories.
-- **Bio & Title Updating (`set_profile_text`):** Updates profile title and overview text with boundary and validation checks.
-- **Skill Token Manipulation (`set_skills`):** Adds and removes freelancer skill chips using Upwork's token picker DOM elements (`air3-token-remove`).
-- **Category Assignment (`set_categories`):** Sets primary and secondary service category classifications.
+- **Live Profile Inspection (`get_profile`):** Extracts professional title, hourly rate, overview biography, skill chips, and employment history.
+- **Bio & Title Updating (`set_profile_text`):** Updates the title (max 70 chars) or overview (max 5000 chars, no links) with validation checks.
+- **Skill Token Manipulation (`set_skills`):** Makes the skill chips exactly the given list (max 20) using Upwork's token picker DOM elements (`air3-token-remove`).
+- **Category Assignment (`set_categories`):** Makes the selected service sub-categories exactly the given list (max 10).
 - **Restricted Surface Safety:** Intentionally excludes billing, hourly rates, Connects purchases, and financial withdrawal settings.
 
 | Tool | Action | Description |
 |---|---|---|
-| `get_profile` | Read | Returns current profile title, overview text, skill tokens, and categories |
-| `set_profile_text` | Write | Updates profile title and overview biography |
+| `get_profile` | Read | Returns current profile title, rate, overview, skills, and employment lines |
+| `set_profile_text` | Write | Updates the profile title or overview biography |
 | `set_skills` | Write | Manages skill chips (adds missing skills, removes unlisted skills) |
-| `set_categories` | Write | Configures primary and secondary work categories |
+| `set_categories` | Write | Sets the selected work sub-categories |
 
 ---
 

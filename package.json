@@ -15,6 +15,7 @@
   "scripts": {
     "build": "npm run --workspaces build",
     "type-check": "npm run --workspaces type-check",
+    "test": "npm run --workspaces test",
     "lint": "npm run --workspaces lint",
     "check": "npm run --workspaces check"
   }

@@ -2,7 +2,7 @@
 
 Reads and fills Greenhouse job application forms (job-boards.greenhouse.io) in your own Chrome tab. It never clicks Submit: you review the form and submit yourself. Public job pages need no login.
 
-## Tools
+## Tools (3)
 
 | Tool | What it does | Type |
 |---|---|---|
