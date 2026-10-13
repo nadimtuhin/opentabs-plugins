@@ -177,3 +177,120 @@ export const setYear = defineTool({
     return { value: (document.getElementById(field) as HTMLInputElement).value };
   },
 });
+
+// Skills page (/settings/profile/skills). Proficiency and years are React selects that ignore typed text: call onChange.
+const onSkills = () => location.pathname.endsWith('/settings/profile/skills');
+const buttonByText = (t: string) => [...document.querySelectorAll('button')].find(b => b.innerText.trim() === t);
+const skillNames = () =>
+  [...document.querySelectorAll<HTMLElement>('[data-testid="SkillsFormSkillName"]')].map(e => e.title);
+const fire = (el: Element) => {
+  for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'])
+    el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+};
+// biome-ignore lint/suspicious/noExplicitAny: React fiber internals
+function selectProps(el: Element): any {
+  const fk = Object.keys(el).find(k => k.startsWith('__reactFiber'));
+  // biome-ignore lint/suspicious/noExplicitAny: React fiber internals
+  let f: any = fk ? (el as any)[fk] : null;
+  for (let i = 0; f && i < 40; i++, f = f.return)
+    if (typeof f.memoizedProps?.onChange === 'function' && f.memoizedProps.options) return f.memoizedProps;
+  throw ToolError.internal('Select component not found.');
+}
+// "Done" persists the table and redirects to /settings/profile. Right after "Add Skill" the first click is ignored: wait, retry once.
+async function clickDone() {
+  for (let attempt = 0; attempt < 2 && onSkills(); attempt++) {
+    await sleep(1000);
+    const done = buttonByText('Done');
+    if (!done) throw ToolError.notFound('No Done button.');
+    done.click();
+    for (let i = 0; i < 12 && onSkills(); i++) await sleep(500);
+  }
+  return !onSkills();
+}
+const SKILLS_ONLY = 'Open /talent/<id>/settings/profile/skills first (reload it between calls).';
+
+// ponytail: one skill per call. After one add, the picker shows no options until the page reloads.
+export const addSkill = defineTool({
+  name: 'add_skill',
+  displayName: 'Add Skill',
+  description:
+    'Add one skill on the Toptal Skills page with proficiency and years, then click Done to save. Reload the Skills page before the next call. Label must exactly match Toptal\'s list (e.g. "Jira REST API").',
+  icon: 'plus',
+  input: z.object({
+    name: z.string().min(1),
+    proficiency: z.enum(['COMPETENT', 'STRONG', 'EXPERT']),
+    years: z.number().int().min(1).max(20),
+  }),
+  output: z.object({ added: z.boolean(), saved: z.boolean(), seen: z.array(z.string()) }),
+  handle: async ({ name, proficiency, years }) => {
+    if (!onSkills()) throw ToolError.notFound(SKILLS_ONLY);
+    if (skillNames().includes(name)) throw ToolError.validation(`${name} is already on the profile.`);
+    buttonByText('Add a skill')?.click();
+    await sleep(800);
+    const inp = document.querySelector<HTMLInputElement>('input[placeholder="Add Skill"]');
+    if (!inp) throw ToolError.notFound('No Add Skill input. Reload the Skills page.');
+    inp.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(inp, name);
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(1800);
+    const opts = [...document.querySelectorAll<HTMLElement>('[role=option]')];
+    const seen = opts.map(o => o.innerText.trim()).slice(0, 8);
+    const hit = opts.find(o => o.innerText.trim() === name);
+    if (!hit) return { added: false, saved: false, seen };
+    fire(hit);
+    await sleep(800);
+    const prof = document.querySelector('input[placeholder="Select proficiency"]');
+    const yrs = document.querySelector('input[placeholder="Select years"]');
+    if (!prof || !yrs) throw ToolError.notFound('Proficiency/years selects missing.');
+    selectProps(prof).onChange(proficiency);
+    await sleep(300);
+    selectProps(yrs).onChange(years);
+    await sleep(400);
+    buttonByText('Add Skill')?.click();
+    for (let i = 0; i < 8 && !skillNames().includes(name); i++) await sleep(500);
+    if (!skillNames().includes(name)) return { added: false, saved: false, seen };
+    return { added: true, saved: await clickDone(), seen };
+  },
+});
+
+// The delete button enables only after mouseover + mouseenter on the row, then a click on the name.
+export const removeSkill = defineTool({
+  name: 'remove_skill',
+  displayName: 'Remove Skill',
+  description:
+    'Remove one skill by exact name on the Toptal Skills page, then click Done to save. Reload the Skills page before the next call.',
+  icon: 'trash',
+  input: z.object({ name: z.string().min(1) }),
+  output: z.object({ removed: z.boolean(), saved: z.boolean() }),
+  handle: async ({ name }) => {
+    if (!onSkills()) throw ToolError.notFound(SKILLS_ONLY);
+    const row = [...document.querySelectorAll<HTMLElement>('[data-testid="SkillsFormSkillEditRow"]')].find(
+      r => r.querySelector<HTMLElement>('[data-testid="SkillsFormSkillName"]')?.title === name,
+    );
+    if (!row) throw ToolError.notFound(`${name} is not on the profile.`);
+    const del = row.querySelector<HTMLButtonElement>('[data-testid="skills-form-delete-skill-button"]');
+    // Flaky right after page load: retry hover + click.
+    for (let i = 0; i < 4 && del?.disabled; i++) {
+      row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      row.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      await sleep(400);
+      row.querySelector<HTMLElement>('[data-testid="SkillsFormSkillName"]')?.click();
+      await sleep(600);
+    }
+    if (!del || del.disabled) throw ToolError.internal('Delete button stayed disabled.');
+    del.click();
+    await sleep(800);
+    // A confirm dialog may appear.
+    const confirm = [...document.querySelectorAll<HTMLButtonElement>('[role=dialog] button')].find(b =>
+      /^(Delete|Remove|Yes|Confirm)/i.test(b.innerText.trim()),
+    );
+    if (confirm) {
+      confirm.click();
+      await sleep(800);
+    }
+    // The row disappears after a short delay; poll.
+    for (let i = 0; i < 8 && skillNames().includes(name); i++) await sleep(500);
+    if (skillNames().includes(name)) return { removed: false, saved: false };
+    return { removed: true, saved: await clickDone() };
+  },
+});
