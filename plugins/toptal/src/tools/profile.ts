@@ -224,6 +224,8 @@ export const addSkill = defineTool({
   output: z.object({ added: z.boolean(), saved: z.boolean(), seen: z.array(z.string()) }),
   handle: async ({ name, proficiency, years }) => {
     if (!onSkills()) throw ToolError.notFound(SKILLS_ONLY);
+    // Page may still be hydrating right after navigation.
+    for (let i = 0; i < 20 && !buttonByText('Add a skill'); i++) await sleep(500);
     if (skillNames().includes(name)) throw ToolError.validation(`${name} is already on the profile.`);
     buttonByText('Add a skill')?.click();
     await sleep(800);
@@ -232,8 +234,13 @@ export const addSkill = defineTool({
     inp.focus();
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(inp, name);
     inp.dispatchEvent(new Event('input', { bubbles: true }));
-    await sleep(1800);
-    const opts = [...document.querySelectorAll<HTMLElement>('[role=option]')];
+    // Search is server-side and can take several seconds; poll for the exact option.
+    let opts: HTMLElement[] = [];
+    for (let i = 0; i < 16; i++) {
+      await sleep(500);
+      opts = [...document.querySelectorAll<HTMLElement>('[role=option]')];
+      if (opts.some(o => o.innerText.trim() === name)) break;
+    }
     const seen = opts.map(o => o.innerText.trim()).slice(0, 8);
     const hit = opts.find(o => o.innerText.trim() === name);
     if (!hit) return { added: false, saved: false, seen };
