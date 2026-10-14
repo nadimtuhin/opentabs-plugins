@@ -98,6 +98,22 @@ Maintains Upwork freelancer profile content directly through the logged-in inter
 
 ---
 
+### 5. Buffer Scheduler (`buffer`)
+**Domain:** `*://publish.buffer.com/*` · **Tools:** 2
+
+Turns Buffer drafts that already have a date and time into scheduled posts. The Buffer API can create and edit drafts but leaves the final schedule click to the web app; this plugin does that one step.
+
+- **Draft Inspection (`list_drafts`):** Lists drafts with preview text, channel, and whether each one already has a time.
+- **Verified Scheduling (`schedule_drafts`):** Clicks "Schedule Post", reads the date Buffer shows, confirms, and checks the Queue count went up. Stops at the first failure.
+- **Restricted Surface Safety:** Never presses "Publish now", "Share next" or "Add to Queue".
+
+| Tool | Action | Description |
+|---|---|---|
+| `list_drafts` | Read | Drafts with preview, channel and schedulable flag |
+| `schedule_drafts` | Write | Schedules timed drafts matched by preview text, max 10 per call |
+
+---
+
 ## Architecture & How It Works
 
 <p align="center">
