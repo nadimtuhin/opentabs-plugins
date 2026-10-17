@@ -114,6 +114,19 @@ Turns Buffer drafts that already have a date and time into scheduled posts. The 
 
 ---
 
+### 6. Company Scout (`company-scout`)
+**Domain:** `*://*.ycombinator.com/companies/*`, `*://*.squareup.com/*app-marketplace*` · **Tools:** 1
+
+Extracts company profiles, tech stack signals, and leadership info from startup directories (Y Combinator) and platform marketplaces (Square App Marketplace) in your own Chrome tab.
+
+- **Dossier Extraction (`extract_company_dossier`):** Pulls company metadata, detected platform ecosystems (Square, Clover, Toast, FHIR), tech stack clues, and founder names.
+
+| Tool | Action | Description |
+|---|---|---|
+| `extract_company_dossier` | Read | Extract company overview, tech stack, and founders |
+
+---
+
 ## Architecture & How It Works
 
 <p align="center">
