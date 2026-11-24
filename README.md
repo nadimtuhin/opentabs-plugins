@@ -127,6 +127,18 @@ Extracts company profiles, tech stack signals, and leadership info from startup 
 
 ---
 
+### 7. Muse Approvals (`muse`)
+**Domain:** `*://muse.ai/*`, `*://*.muse.ai/*` · **Tools:** 2
+
+Lists and answers the approval cards the muse.ai assistant waits on. Selectors come from the Auto Approve for Muse extension.
+
+| Tool | Action | Description |
+|---|---|---|
+| `list_approvals` | Read | Visible approval cards: text, surface (chat or panel), buttons |
+| `respond_approval` | Write | Allow once, always allow, or deny one card; checks `expect_text` first |
+
+---
+
 ## Architecture & How It Works
 
 <p align="center">
