@@ -1,165 +1,150 @@
 <p align="center">
-  <img src="./assets/cover-banner.png" alt="OpenTabs Plugins Banner" width="100%" />
+  <img src="./assets/cover-banner.png" alt="OpenTabs Plugins: community plugins that let an AI agent use sites you are already logged into" width="100%" />
 </p>
 
 # OpenTabs Plugins
 
-Collection of high-impact browser automation plugins that give AI coding agents direct, authenticated access to major web platforms through active Chrome/Chromium sessions.
+Community OpenTabs plugins that let an AI agent use sites you are already logged into in Chrome.
+
+Each plugin is a set of MCP tools that run inside an open tab and use the browser session already there. You do not provide API keys.
 
 <p align="center">
-  <img src="./assets/plugins-showcase.png" alt="Plugin Features Overview" width="100%" />
+  <img src="./assets/plugins-showcase.png" alt="The seven plugins: Facebook Friends Manager, Greenhouse Apply, Toptal Apply, Upwork, Buffer, Company Scout, and Muse" width="100%" />
 </p>
 
----
+## Plugins
 
-## The Plugins
+| Plugin | Package | Tools | Runs on |
+| --- | --- | --- | --- |
+| Facebook Friends Manager | `fb-friends-manager` | 6 | `*://*.facebook.com/*` |
+| Greenhouse Apply | `greenhouse` | 3 | `*://*.greenhouse.io/*` |
+| Toptal Apply | `toptal` | 9 | `*://talent.toptal.com/*` |
+| Upwork | `upwork` | 4 | `*://*.upwork.com/*` |
+| Buffer | `buffer` | 2 | `*://publish.buffer.com/*` |
+| Company Scout | `company-scout` | 1 | YC company pages and Square App Marketplace |
+| Muse | `muse` | 2 | `*://muse.ai/*`, `*://*.muse.ai/*` |
 
 ### 1. Facebook Friends Manager (`fb-friends-manager`)
-**Domain:** `*://*.facebook.com/*` · **Tools:** 6
+**Runs on:** `*://*.facebook.com/*`. **Tools:** 6
 
-Intelligently manages pending Facebook friend requests with heuristic triage scoring, graph connection analysis, and safety-paced batch operations.
+Lists pending incoming friend requests and suggests `ACCEPT`, `DELETE`, or `REVIEW` from mutual friend counts and request age. You can accept or decline one request, or run a paced batch.
 
-- **Request Triage Scoring (`suggest_triage`):** Evaluates pending requests against configurable mutual friend thresholds and request age. Classifies each into `ACCEPT`, `DELETE` (decline), or `REVIEW`.
-- **Safety-Paced Batch Operations (`batch_triage_requests`):** Executes batch confirmations and deletions with configurable inter-request delays (default: 600ms) to respect Facebook rate limits.
-- **Graph & Health Overview (`get_friends_overview`):** Summarizes mutual friend distributions (zero, low, mid, high tiers) and incoming request age breakdowns (under 1 month to 5+ years).
-- **Direct Actions (`confirm_friend_request`, `delete_friend_request`):** Accepts or declines individual requests via numeric user ID or vanity username.
-
-| Tool | Action | Description |
-|---|---|---|
-| `list_friend_requests` | Read | Returns pending incoming requests with mutual friend counts and timestamps |
-| `suggest_triage` | Read | Generates heuristic recommendations (`ACCEPT`, `DELETE`, `REVIEW`) |
-| `confirm_friend_request` | Write | Accepts an individual incoming friend request |
-| `delete_friend_request` | Write | Declines or deletes an individual incoming friend request |
-| `batch_triage_requests` | Write | Executes batch accept/delete actions with safety pacing |
-| `get_friends_overview` | Read | Statistical breakdown of mutual friend tiers and request age |
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `list_friend_requests` | Read | Pending incoming requests with mutual friend counts and timestamps |
+| `suggest_triage` | Read | Heuristic recommendations (`ACCEPT`, `DELETE`, `REVIEW`) |
+| `confirm_friend_request` | Write | Accepts one request by user ID or username |
+| `delete_friend_request` | Write | Declines or deletes one request by user ID or username |
+| `batch_triage_requests` | Write | Batch accept and delete, with a delay between actions (default 600 ms) |
+| `get_friends_overview` | Read | Mutual friend tiers (0, 1-10, 11-50, 50+) and request age buckets |
 
 ---
 
 ### 2. Greenhouse Apply (`greenhouse`)
-**Domain:** `*://*.greenhouse.io/*` · **Tools:** 3
+**Runs on:** `*://*.greenhouse.io/*`. **Tools:** 3
 
-Inspects and populates Greenhouse job application forms in real time, handling complex React custom inputs and document attachments.
+Reads and fills Greenhouse job application forms, including resume and cover letter uploads. It never clicks Submit. Public job pages need no login. Only the hosted board (`job-boards.greenhouse.io`) is tested.
 
-- **Deep Form Inspection (`get_application_form`):** Extracts every form input, select box, checkbox group, and required validation constraint from the live page.
-- **React Fiber Component Binding (`fill_application`):** Custom dropdowns in Greenhouse run on `react-select`. The plugin traverses the React fiber tree to invoke native component setters, ensuring valid form state bindings before save.
-- **Document Attachment (`attach_file`):** Directly attaches resumes and cover letters via base64 buffer injection into native file inputs.
-- **Human-in-the-Loop Guardrail:** The plugin intentionally never clicks "Submit Application" — final review and submission remain strictly with the user.
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `get_application_form` | Read | Fields, types, required flags, options, current values, and required fields still empty |
+| `fill_application` | Write | Fills text, dropdowns, and checkboxes by field id or label (case-insensitive). Never submits |
+| `attach_file` | Write | Attaches a resume or cover letter from base64 (PDF, DOC, DOCX, TXT, or RTF, up to 10 MB) |
 
-| Tool | Action | Description |
-|---|---|---|
-| `get_application_form` | Read | Maps all fields, types, required flags, options, and missing inputs |
-| `fill_application` | Write | Fills text, dropdowns, and checkboxes using case-insensitive fuzzy keys |
-| `attach_file` | Write | Uploads base64 resume or cover letter files into application file inputs |
+Dropdowns use `react-select`. The plugin finds the component on the React fiber and calls `selectOption()`.
 
 ---
 
-### 3. Toptal Apply & Profile Manager (`toptal`)
-**Domain:** `*://talent.toptal.com/*` · **Tools:** 9
+### 3. Toptal Apply (`toptal`)
+**Runs on:** `*://talent.toptal.com/*`. **Tools:** 9
 
-Automates job application drafting and talent profile maintenance on the Toptal Talent Portal.
+Fills the Talent Portal apply flow (cover letter and terms) and edits profile sections, including skills. It never clicks Submit Application.
 
-- **Job Application State Tracking (`get_apply_state`):** Reads the apply wizard step, rate, cover letter length, and terms checkbox.
-- **Cover Letter Drafting (`fill_cover_letter`):** Types a 380-2000 character cover letter and ticks the terms box without submitting.
-- **Profile Section Management (`get_profile_form`, `fill_profile_fields`, `save_profile`):** Reads and updates freelancer profile sections (experience, certifications, work history) across `/settings/profile/*`.
-- **Custom UI Component Handlers (`pick_option`, `set_year`):** Drives Toptal's type-ahead pickers (industries, skills) and work-experience year selects.
-- **Skills Management (`add_skill`, `remove_skill`):** Adds a skill with proficiency and years, or removes one, on the Skills page and saves.
-
-| Tool | Action | Description |
-|---|---|---|
-| `get_apply_state` | Read | Reads the apply wizard step, rate, cover letter length, and terms state |
-| `fill_cover_letter` | Write | Types the cover letter and ticks the terms box; never submits |
-| `get_profile_form` | Read | Reads editable inputs, limits, and validation rules for a profile section |
-| `fill_profile_fields` | Write | Sets string inputs and boolean checkboxes by key |
-| `save_profile` | Write | Clicks the section Save button and reports validation errors |
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `get_apply_state` | Read | Apply wizard step, rate, cover letter length, and terms checkbox |
+| `fill_cover_letter` | Write | Types a 380-2000 character cover letter and ticks the terms box. Never submits |
+| `get_profile_form` | Read | Editable fields, hints, and the Save button label on a profile section |
+| `fill_profile_fields` | Write | Sets text fields and checkboxes by key. Does not save |
+| `save_profile` | Write | Clicks Save and reports validation errors |
 | `pick_option` | Write | Selects one option in the `industryIds` or `skills` type-ahead picker |
 | `set_year` | Write | Sets the `startDate` or `endDate` year on a work-experience form |
-| `add_skill` | Write | Adds one skill with proficiency (`COMPETENT`/`STRONG`/`EXPERT`) and years, then saves |
+| `add_skill` | Write | Adds one skill with proficiency (`COMPETENT`, `STRONG`, or `EXPERT`) and years, then saves |
 | `remove_skill` | Write | Removes one skill by exact name, then saves |
 
 ---
 
-### 4. Upwork Profile Manager (`upwork`)
-**Domain:** `*://*.upwork.com/*` · **Tools:** 4
+### 4. Upwork (`upwork`)
+**Runs on:** `*://*.upwork.com/*`. **Tools:** 4
 
-Maintains Upwork freelancer profile content directly through the logged-in interface without private API dependencies.
+Reads and edits the freelancer profile in the open tab. It can change title, overview, skills, and service categories. It cannot change rate, visibility, Connects, or the Open for work badge.
 
-- **Live Profile Inspection (`get_profile`):** Extracts professional title, hourly rate, overview biography, skill chips, and employment history.
-- **Bio & Title Updating (`set_profile_text`):** Updates the title (max 70 chars) or overview (max 5000 chars, no links) with validation checks.
-- **Skill Token Manipulation (`set_skills`):** Makes the skill chips exactly the given list (max 20) using Upwork's token picker DOM elements (`air3-token-remove`).
-- **Category Assignment (`set_categories`):** Makes the selected service sub-categories exactly the given list (max 10).
-- **Restricted Surface Safety:** Intentionally excludes billing, hourly rates, Connects purchases, and financial withdrawal settings.
-
-| Tool | Action | Description |
-|---|---|---|
-| `get_profile` | Read | Returns current profile title, rate, overview, skills, and employment lines |
-| `set_profile_text` | Write | Updates the profile title or overview biography |
-| `set_skills` | Write | Manages skill chips (adds missing skills, removes unlisted skills) |
-| `set_categories` | Write | Sets the selected work sub-categories |
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `get_profile` | Read | Title, hourly rate, overview, skills, and employment lines |
+| `set_profile_text` | Write | Updates the title (max 70 characters) or overview (max 5000 characters, no URLs) |
+| `set_skills` | Write | Makes the skill chips exactly the given list (max 20) |
+| `set_categories` | Write | Makes the selected sub-categories exactly the given list (max 10) |
 
 ---
 
-### 5. Buffer Scheduler (`buffer`)
-**Domain:** `*://publish.buffer.com/*` · **Tools:** 2
+### 5. Buffer (`buffer`)
+**Runs on:** `*://publish.buffer.com/*`. **Tools:** 2
 
-Turns Buffer drafts that already have a date and time into scheduled posts. The Buffer API can create and edit drafts but leaves the final schedule click to the web app; this plugin does that one step.
+Schedules Buffer drafts that already have a date and time. Creating and editing posts is left to the Buffer API. This plugin only does the schedule step in the web app. It never presses "Publish now", "Share next", or "Add to Queue".
 
-- **Draft Inspection (`list_drafts`):** Lists drafts with preview text, channel, and whether each one already has a time.
-- **Verified Scheduling (`schedule_drafts`):** Clicks "Schedule Post", reads the date Buffer shows, confirms, and checks the Queue count went up. Stops at the first failure.
-- **Restricted Surface Safety:** Never presses "Publish now", "Share next" or "Add to Queue".
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `list_drafts` | Read | Drafts with preview text, channel, and whether each one already has a time |
+| `schedule_drafts` | Write | Schedules timed drafts matched by preview text, max 10 per call. Stops at the first failure |
 
-| Tool | Action | Description |
-|---|---|---|
-| `list_drafts` | Read | Drafts with preview, channel and schedulable flag |
-| `schedule_drafts` | Write | Schedules timed drafts matched by preview text, max 10 per call |
+Open the Drafts tab first. That tab needs a trusted click on `#drafts-tab`.
 
 ---
 
 ### 6. Company Scout (`company-scout`)
-**Domain:** `*://*.ycombinator.com/companies/*`, `*://*.squareup.com/*app-marketplace*` · **Tools:** 1
+**Runs on:** `*://*.ycombinator.com/companies/*`, `*://*.squareup.com/us/en/app-marketplace/*`, `*://*.squareup.com/app-marketplace/*`. **Tools:** 1
 
-Extracts company profiles, tech stack signals, and leadership info from startup directories (Y Combinator) and platform marketplaces (Square App Marketplace) in your own Chrome tab.
+Reads the open Y Combinator company page or Square App Marketplace listing. It extracts name, tagline, description, keyword matches for platforms and tech, and founder names from common team selectors. It does not make background API calls.
 
-- **Dossier Extraction (`extract_company_dossier`):** Pulls company metadata, detected platform ecosystems (Square, Clover, Toast, FHIR), tech stack clues, and founder names.
-
-| Tool | Action | Description |
-|---|---|---|
-| `extract_company_dossier` | Read | Extract company overview, tech stack, and founders |
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `extract_company_dossier` | Read | Company name, tagline, description, detected platforms, tech keywords, and founders |
 
 ---
 
-### 7. Muse Approvals (`muse`)
-**Domain:** `*://muse.ai/*`, `*://*.muse.ai/*` · **Tools:** 2
+### 7. Muse (`muse`)
+**Runs on:** `*://muse.ai/*`, `*://*.muse.ai/*`. **Tools:** 2
 
-Lists and answers the approval cards the muse.ai assistant waits on. Selectors come from the Auto Approve for Muse extension.
+Lists and answers the approval cards the muse.ai assistant waits on. Selectors match the Auto Approve for Muse extension.
 
-| Tool | Action | Description |
-|---|---|---|
-| `list_approvals` | Read | Visible approval cards: text, surface (chat or panel), buttons |
-| `respond_approval` | Write | Allow once, always allow, or deny one card; checks `expect_text` first |
+| Tool | Access | What it does |
+| --- | --- | --- |
+| `list_approvals` | Read | Visible approval cards: text, surface (chat or panel), and buttons |
+| `respond_approval` | Write | Allow once, always allow, or deny one card. Checks `expect_text` first. `always` falls back to allow once when the card has no Always option |
 
 ---
 
-## Architecture & How It Works
+## How it works
 
 <p align="center">
-  <img src="./assets/architecture.svg" alt="OpenTabs Plugin Architecture" width="100%" />
+  <img src="./assets/architecture.png" alt="Tool call flow: MCP client, to OpenTabs, to the Chrome extension, to the plugin running in the open tab" width="100%" />
 </p>
 
-1. **AI Agent (MCP Client):** Claude Code, Hermes, Codex, or Cursor issues standard MCP tool calls (`tools/call`) over JSON-RPC.
-2. **OpenTabs MCP Server:** Validates permissions, checks argument schemas, and forwards invocations over a local WebSocket (`ws://127.0.0.1:9515/ws`).
-3. **Chrome Extension (MV3):** Identifies the target browser tab matching the plugin's URL pattern and routes calls to the injected IIFE adapter.
-4. **Plugin Adapter IIFE:** Runs inside the page's MAIN world context. Executes in `jitless` mode to remain fully compliant with strict Trusted Types CSP environments (e.g., YouTube, Outlook). Uses existing browser authentication cookies.
+1. An MCP client calls a plugin tool through the OpenTabs server.
+2. OpenTabs checks the tool input and finds a Chrome tab whose URL matches the plugin.
+3. The OpenTabs Chrome extension routes the call into that tab.
+4. The plugin adapter runs in the page and uses the existing browser session. Plugins turn on Zod `jitless` mode so they stay compatible with pages that enforce Trusted Types.
 
----
+## Install
 
-## Quick Start
+### Prerequisites
 
-### 1. Prerequisites
-- Node.js >= 20
-- OpenTabs CLI (`npm install -g @opentabs-dev/cli`)
-- OpenTabs Chrome Extension connected to your browser
+- Node.js 22 (the version used in CI)
+- The [OpenTabs CLI](https://opentabs.dev/docs/install) and its Chrome extension, with `opentabs start` already running
 
-### 2. Clone & Build
+### Clone and build
+
 ```bash
 git clone https://github.com/nadimtuhin/opentabs-plugins.git
 cd opentabs-plugins
@@ -167,8 +152,7 @@ npm install
 npm run build
 ```
 
-### 3. Register Plugins in OpenTabs
-Add the built plugins to your `~/.opentabs/config.json`:
+The first `npm run build` registers each plugin in `~/.opentabs/config.json`. You can also list the plugin directories yourself:
 
 ```json
 {
@@ -176,33 +160,43 @@ Add the built plugins to your `~/.opentabs/config.json`:
     "/path/to/opentabs-plugins/plugins/fb-friends-manager",
     "/path/to/opentabs-plugins/plugins/greenhouse",
     "/path/to/opentabs-plugins/plugins/toptal",
-    "/path/to/opentabs-plugins/plugins/upwork"
+    "/path/to/opentabs-plugins/plugins/upwork",
+    "/path/to/opentabs-plugins/plugins/buffer",
+    "/path/to/opentabs-plugins/plugins/company-scout",
+    "/path/to/opentabs-plugins/plugins/muse"
   ]
 }
 ```
 
-Reload the OpenTabs server:
+### Call a tool
+
+Open a matching tab in Chrome, then run a tool. Each plugin README has examples that match the tool input schemas. On a Greenhouse application page:
+
 ```bash
-opentabs restart
+opentabs tool call greenhouse__get_application_form '{}'
 ```
 
----
+## Add a plugin
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow. In short:
+
+1. Create `plugins/<name>` with a `package.json` that includes the `opentabs` metadata field and URL patterns.
+2. Keep tools isolated, each with an explicit Zod schema.
+3. Never auto-submit critical forms (checkout, final job submission, payments). Leave the final submit action to the user.
+4. Import the `jitless` bootstrap so Zod does not violate Trusted Types CSP.
+5. Document every tool in the plugin README under `## Tools (N)`, include at least one `opentabs tool call` example, and add a matching section to this README.
+
+Then run `npm install`, `npm run build`, `npm test`, `npm run type-check`, and `npm run lint`.
 
 ## Development
 
 ```bash
-# Build all plugins
 npm run build
-
-# Run TypeScript checks across all workspaces
 npm run type-check
-
-# Run linter
 npm run lint
+npm test
 ```
-
----
 
 ## License
 
-MIT
+MIT. See [LICENSE](./LICENSE).
