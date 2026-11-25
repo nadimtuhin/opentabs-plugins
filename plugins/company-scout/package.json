@@ -1,6 +1,6 @@
 {
   "name": "opentabs-plugin-company-scout",
-  "description": "Extract company metadata, founder information, and architecture signals from YC, Square Marketplace, and company web pages.",
+  "description": "Extract company profiles, leadership, and tech stack signals from startup directories and marketplaces.",
   "version": "0.1.0",
   "license": "MIT",
   "author": "Nadim Tuhin <nadimtuhin@gmail.com>",

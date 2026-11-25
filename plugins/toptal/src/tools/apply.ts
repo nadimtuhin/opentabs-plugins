@@ -1,8 +1,6 @@
 import { defineTool, ToolError } from '@opentabs-dev/plugin-sdk';
 import { z } from 'zod';
-
-const MIN = 380;
-const MAX = 2000;
+import { COVER_MAX, COVER_MIN, applyStep, coverLetterError } from '../form-rules.js';
 
 const pitchBox = () => document.querySelector<HTMLTextAreaElement>('textarea[name="pitch"]');
 const rateBox = () => document.querySelector<HTMLInputElement>('input[name="requestedRate"]');
@@ -17,7 +15,7 @@ function setNative(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
   el.dispatchEvent(new Event('blur', { bubbles: true }));
 }
 
-const step = () => (pitchBox() ? 'cover_letter' : rateBox() ? 'rate' : 'other');
+const step = () => applyStep(Boolean(pitchBox()), Boolean(rateBox()));
 
 export const getApplyState = defineTool({
   name: 'get_apply_state',
@@ -48,18 +46,20 @@ export const getApplyState = defineTool({
 export const fillCoverLetter = defineTool({
   name: 'fill_cover_letter',
   displayName: 'Fill Cover Letter',
-  description: `Type the cover letter (${MIN}-${MAX} chars) into the apply form and tick the "I understand" box. Does NOT click Submit Application.`,
+  description: `Type the cover letter (${COVER_MIN}-${COVER_MAX} chars) into the apply form and tick the "I understand" box. Does NOT click Submit Application.`,
   icon: 'pencil',
-  input: z.object({ text: z.string().describe('Cover letter text') }),
+  input: z.object({
+    text: z.string().min(COVER_MIN).max(COVER_MAX).describe(`Cover letter text, ${COVER_MIN}-${COVER_MAX} characters`),
+  }),
   output: z.object({ pitch_length: z.number(), terms_checked: z.boolean() }),
   handle: async ({ text }) => {
+    const lengthError = coverLetterError(text);
+    if (lengthError) throw ToolError.validation(lengthError);
     const box = pitchBox();
     if (!box)
       throw ToolError.notFound(
         'Cover letter step not open. Click through Review Terms and Highlight Experience first.',
       );
-    if (text.length < MIN || text.length > MAX)
-      throw ToolError.validation(`Letter must be ${MIN}-${MAX} chars, got ${text.length}.`);
     setNative(box, text);
     const terms = termsBox();
     if (terms && !terms.checked) terms.click();

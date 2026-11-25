@@ -5,7 +5,8 @@ import { extractCompanyDossier } from './tools/extract-company.js';
 
 class CompanyScoutPlugin extends OpenTabsPlugin {
   readonly name = 'company-scout';
-  readonly description = 'Extract company profiles, leadership, and tech stack signals from startup directories and marketplaces.';
+  readonly description =
+    'Extract company profiles, leadership, and tech stack signals from startup directories and marketplaces.';
   override readonly displayName = 'Company Scout';
   readonly urlPatterns = [
     '*://*.ycombinator.com/companies/*',

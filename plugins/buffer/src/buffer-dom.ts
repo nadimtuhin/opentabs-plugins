@@ -21,12 +21,36 @@ export const onDraftsTab = () => document.querySelector('#drafts-tab')?.getAttri
 export interface DraftCard {
   preview: string;
   channel: string;
+  /** True when Buffer cut the preview with a trailing ellipsis inside the quotes. */
+  truncated: boolean;
   schedulable: boolean;
   button: HTMLButtonElement;
 }
 
-const EDIT = /^Edit draft "(.+?)…?" for (.+?) created/;
+// The preview is the quoted text. A non-greedy match stopped at the first " for " inside the post
+// and at an ellipsis in the middle of it, so two different drafts could collapse into one prefix.
+const EDIT = /^Edit draft "(.+)" for (.+?) created/;
 const ACTION = /^(Schedule Post|Add to Queue)$/;
+
+// A truncated preview is about 60 characters. Reverse-matching a longer query below this length
+// lets a short card swallow an unrelated post ("The" matches "The quarterly update").
+export const MIN_TRUNCATED_PREFIX = 12;
+
+export function parseEditLabel(label: string): { preview: string; channel: string; truncated: boolean } | null {
+  const m = label.match(EDIT);
+  const quoted = m?.[1];
+  const channel = m?.[2]?.trim() ?? '';
+  if (!quoted || !channel) return null;
+  const truncated = /…\s*$/.test(quoted);
+  const preview = quoted.replace(/…\s*$/, '').trim();
+  if (!preview) return null;
+  return { preview, channel, truncated };
+}
+
+export function draftMatches(card: { preview: string; truncated: boolean }, query: string): boolean {
+  if (card.preview.startsWith(query)) return true;
+  return card.truncated && card.preview.length >= MIN_TRUNCATED_PREFIX && query.startsWith(card.preview);
+}
 
 // Pair buttons by document order: the action button is the last one seen before each Edit button.
 export const readDrafts = (): DraftCard[] => {
@@ -38,11 +62,12 @@ export const readDrafts = (): DraftCard[] => {
       action = b;
       continue;
     }
-    const m = (b.getAttribute('aria-label') || text).match(EDIT);
-    if (!m || !action) continue;
+    const parsed = parseEditLabel(b.getAttribute('aria-label') || text);
+    if (!parsed || !action) continue;
     out.push({
-      preview: m[1] ?? '',
-      channel: m[2] ?? '',
+      preview: parsed.preview,
+      channel: parsed.channel,
+      truncated: parsed.truncated,
       schedulable: action.innerText.trim() === 'Schedule Post',
       button: action,
     });

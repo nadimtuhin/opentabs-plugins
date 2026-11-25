@@ -7,7 +7,7 @@ Fill Toptal Talent Portal job applications (cover letter, terms) and edit profil
 | Tool | Parameters | Description | Type |
 |---|---|---|---|
 | `get_apply_state` | none | Read the open `/apply` page: job title, wizard step (`rate`, `cover_letter`, `other`), rate, cover letter length and terms checkbox | Read |
-| `fill_cover_letter` | `text` (380-2000 chars) | Type the cover letter and tick the "I understand" box. Never clicks Submit Application | Write |
+| `fill_cover_letter` | `text` (380-2000 chars, enforced by the input schema) | Type the cover letter and tick the "I understand" box. Never clicks Submit Application | Write |
 | `get_profile_form` | none | Read the text fields on the open `/settings/profile/<section>` page: key, type, value, invalid flag, helper hints, and the Save button label | Read |
 | `fill_profile_fields` | `fields`: `{ "<key>": string or boolean }` | Set text fields and checkboxes by key (from `get_profile_form`). Does not save | Write |
 | `save_profile` | none | Click Save on the profile section. Refuses if any field is invalid; returns the new URL and any validation errors | Write |
@@ -36,7 +36,12 @@ opentabs tool call toptal__remove_skill '{"name":"jQuery"}'
 
 - `add_skill` and `remove_skill` handle one skill per call. Reload the Skills page between calls; after one add the picker shows no options until the page reloads.
 - Skill and picker labels must exactly match Toptal's fixed list (e.g. `"Jira REST API"`). On a miss the tool returns `picked`/`added: false` with the options it saw.
-- `fill_profile_fields` keys are the field `name` (or `id`) reported by `get_profile_form`. Unknown keys fail before anything is changed.
+- `fill_profile_fields` keys are the field `name` (or `id` when the control has no name) reported by `get_profile_form`. Unknown keys fail before anything is changed.
+- `fill_cover_letter` rejects text outside 380-2000 characters before it looks for the textarea.
+- `get_profile_form` reports the last path segment, so `/settings/profile/skills/` is still `skills`.
+- The Save button is the one whose label starts with "Save" and is not "Save and Add Another". A "Saved" label is not the button.
+- `set_year` runs only on a `/settings/profile/<section>` page.
+- Type-ahead matching uses the first line of the option, so a description on the next line does not hide the label.
 
 ## Safety Guardrails
 

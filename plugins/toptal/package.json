@@ -1,6 +1,6 @@
 {
   "name": "opentabs-plugin-toptal",
-  "description": "Fill Toptal Talent Portal job applications (rate, cover letter, terms). Never submits.",
+  "description": "Fill Toptal Talent Portal job applications (cover letter, terms). Edit profile sections. Never submits applications.",
   "version": "0.1.0",
   "license": "MIT",
   "author": "Nadim Tuhin <nadimtuhin@gmail.com>",
@@ -16,7 +16,7 @@
   ],
   "opentabs": {
     "displayName": "Toptal Apply",
-    "description": "Fill Toptal Talent Portal job applications (rate, cover letter, terms). Never submits.",
+    "description": "Fill Toptal Talent Portal job applications (cover letter, terms). Edit profile sections. Never submits applications.",
     "urlPatterns": [
       "*://talent.toptal.com/*"
     ]

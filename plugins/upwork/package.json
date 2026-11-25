@@ -1,6 +1,6 @@
 {
   "name": "opentabs-plugin-upwork",
-  "description": "OpenTabs plugin for Upwork",
+  "description": "Read and edit the Upwork freelancer profile (title, overview, skills, categories). Cannot change rate, visibility, Connects or the Open for work badge.",
   "version": "0.1.0",
   "license": "MIT",
   "author": "Nadim Tuhin <nadimtuhin@gmail.com>",
@@ -16,7 +16,7 @@
   ],
   "opentabs": {
     "displayName": "Upwork",
-    "description": "OpenTabs plugin for Upwork",
+    "description": "Read and edit the Upwork freelancer profile (title, overview, skills, categories). Cannot change rate, visibility, Connects or the Open for work badge.",
     "urlPatterns": [
       "*://*.upwork.com/*"
     ]

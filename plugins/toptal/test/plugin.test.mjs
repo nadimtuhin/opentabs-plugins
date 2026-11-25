@@ -13,9 +13,13 @@ await describePluginContract(pluginDir);
 const plugin = await loadPlugin(pluginDir);
 
 describe('toptal input validation', () => {
-  it('fill_cover_letter needs text', () => {
+  it('fill_cover_letter needs 380-2000 characters', () => {
     const tool = findTool(plugin, 'fill_cover_letter');
-    assertAccepts(tool, { text: 'Hello' });
+    assertAccepts(tool, { text: 'A'.repeat(380) });
+    assertAccepts(tool, { text: 'A'.repeat(2000) });
+    assertRejects(tool, { text: 'Hello' });
+    assertRejects(tool, { text: 'A'.repeat(379) });
+    assertRejects(tool, { text: 'A'.repeat(2001) });
     assertRejects(tool, {});
   });
 
@@ -29,6 +33,7 @@ describe('toptal input validation', () => {
     const tool = findTool(plugin, 'pick_option');
     assertAccepts(tool, { field: 'industryIds', label: 'Fintech' });
     assertRejects(tool, { field: 'country', label: 'Bangladesh' });
+    assertRejects(tool, { field: 'skills', label: '' });
   });
 
   it('set_year takes a whole year from 1970 to 2100 on startDate or endDate', () => {

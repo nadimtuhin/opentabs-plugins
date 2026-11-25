@@ -1,15 +1,31 @@
 import { defineTool, ToolError } from '@opentabs-dev/plugin-sdk';
 import { z } from 'zod';
+import { fieldKey, isSaveButtonLabel, optionLabel, profileSection, validationLines } from '../form-rules.js';
 
 const onProfile = () => location.pathname.includes('/settings/profile/');
 const SKIP = new Set(['hidden', 'radio', 'file']);
 
-// Plain-text fields only; id falls back to name. Dropdowns/hidden inputs are not editable here.
+interface ReactFiber {
+  return: ReactFiber | null;
+  type?: { name?: string; displayName?: string };
+  memoizedProps?: {
+    onChange?: (value: string | number) => void;
+    options?: unknown;
+  };
+}
+
+function fiber(el: Element): ReactFiber | null {
+  const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber'));
+  if (!fiberKey) return null;
+  return (el as unknown as Record<string, ReactFiber | undefined>)[fiberKey] ?? null;
+}
+
+// Plain-text fields only. The posted name wins over the id. Dropdowns and hidden inputs are not editable here.
 const editable = () =>
   [...document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')].filter(
     e => !SKIP.has(e.type) && (e.id || e.name) && !(e.tagName === 'TEXTAREA' && !e.id && !e.name),
   );
-const key = (e: HTMLElement) => (e as HTMLInputElement).name || e.id;
+const key = (e: HTMLElement) => fieldKey((e as HTMLInputElement).name || '', e.id);
 
 function setNative(el: HTMLInputElement | HTMLTextAreaElement, value: string | boolean) {
   if (el instanceof HTMLInputElement && el.type === 'checkbox') {
@@ -25,15 +41,10 @@ function setNative(el: HTMLInputElement | HTMLTextAreaElement, value: string | b
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-// "Save and Add Another" is excluded on purpose.
-const saveButton = () =>
-  [...document.querySelectorAll('button')].find(b => /^Save/.test(b.innerText.trim()) && !/Another/.test(b.innerText));
+const saveButton = () => [...document.querySelectorAll('button')].find(b => isSaveButtonLabel(b.innerText));
 
 // Validation text the page shows after a failed save.
-const errors = () =>
-  (
-    document.body.innerText.match(/[^\n]*(you need to|is required|must be|Please (select|enter|fill))[^\n]*/gi) ?? []
-  ).slice(0, 5);
+const errors = () => validationLines(document.body.innerText);
 
 export const getProfileForm = defineTool({
   name: 'get_profile_form',
@@ -53,7 +64,7 @@ export const getProfileForm = defineTool({
   handle: async () => {
     if (!onProfile()) throw ToolError.notFound('Open a /settings/profile/<section> edit page first.');
     return {
-      section: location.pathname.split('/').pop() ?? '',
+      section: profileSection(location.pathname),
       fields: editable().map(e => ({
         key: key(e),
         type: e.type,
@@ -126,25 +137,29 @@ export const pickOption = defineTool({
   name: 'pick_option',
   displayName: 'Pick Type-ahead Option',
   description:
-    'Select one option in a Toptal type-ahead picker (field name industryIds or skills) by exact label. Call once per option. Fails if the label is not in Toptal\'s fixed list (e.g. no Gutenberg or WooCommerce).',
+    "Select one option in a Toptal type-ahead picker (field name industryIds or skills) by exact label. Call once per option. Fails if the label is not in Toptal's fixed list (e.g. no Gutenberg or WooCommerce).",
   icon: 'list-checks',
-  input: z.object({ field: z.enum(['industryIds', 'skills']), label: z.string() }),
+  input: z.object({ field: z.enum(['industryIds', 'skills']), label: z.string().min(1) }),
   output: z.object({ picked: z.boolean(), seen: z.array(z.string()) }),
   handle: async ({ field, label }) => {
     if (!onProfile()) throw ToolError.notFound('Open a /settings/profile/<section> edit page first.');
     const el = document.querySelector<HTMLInputElement>(`[name="${field}"]`);
     if (!el) throw ToolError.notFound(`No ${field} input on this page.`);
+    const want = optionLabel(label);
     let seen: string[] = [];
     for (let attempt = 0; attempt < 2; attempt++) {
       el.focus();
       el.click();
       await sleep(800);
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(el, label);
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(el, want);
       el.dispatchEvent(new Event('input', { bubbles: true }));
       await sleep(1500);
       const opts = [...document.querySelectorAll<HTMLElement>('[role=option]')];
-      seen = opts.map(o => o.innerText.trim()).slice(0, 6);
-      const hit = opts.find(o => o.innerText.trim() === label);
+      seen = opts
+        .map(o => optionLabel(o.innerText))
+        .filter(Boolean)
+        .slice(0, 6);
+      const hit = opts.find(o => optionLabel(o.innerText) === want);
       if (hit) {
         for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'])
           hit.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
@@ -165,14 +180,21 @@ export const setYear = defineTool({
   input: z.object({ field: z.enum(['startDate', 'endDate']), year: z.number().int().min(1970).max(2100) }),
   output: z.object({ value: z.string() }),
   handle: async ({ field, year }) => {
+    if (!onProfile()) throw ToolError.notFound('Open a /settings/profile/<section> edit page first.');
     const el = document.getElementById(field);
     if (!el) throw ToolError.notFound(`No #${field} on this page.`);
-    const fk = Object.keys(el).find(k => k.startsWith('__reactFiber'));
-    // biome-ignore lint/suspicious/noExplicitAny: React fiber internals
-    let f: any = fk ? (el as any)[fk] : null;
-    for (let i = 0; f && i < 10 && f.type?.name !== 'YearSelect' && f.type?.displayName !== 'YearSelect'; i++) f = f.return;
-    if (!f) throw ToolError.internal('YearSelect component not found.');
-    f.memoizedProps.onChange(year);
+    let node = fiber(el);
+    for (
+      let i = 0;
+      node && i < 10 && node.type?.name !== 'YearSelect' && node.type?.displayName !== 'YearSelect';
+      i++
+    ) {
+      node = node.return;
+    }
+    const onChange = node?.memoizedProps?.onChange;
+    const isYear = node?.type?.name === 'YearSelect' || node?.type?.displayName === 'YearSelect';
+    if (!isYear || !onChange) throw ToolError.internal('YearSelect component not found.');
+    onChange(year);
     await sleep(500);
     return { value: (document.getElementById(field) as HTMLInputElement).value };
   },
@@ -182,18 +204,19 @@ export const setYear = defineTool({
 const onSkills = () => location.pathname.endsWith('/settings/profile/skills');
 const buttonByText = (t: string) => [...document.querySelectorAll('button')].find(b => b.innerText.trim() === t);
 const skillNames = () =>
-  [...document.querySelectorAll<HTMLElement>('[data-testid="SkillsFormSkillName"]')].map(e => e.title);
+  [...document.querySelectorAll<HTMLElement>('[data-testid="SkillsFormSkillName"]')]
+    .map(e => e.title.trim())
+    .filter(Boolean);
 const fire = (el: Element) => {
   for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'])
     el.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
 };
-// biome-ignore lint/suspicious/noExplicitAny: React fiber internals
-function selectProps(el: Element): any {
-  const fk = Object.keys(el).find(k => k.startsWith('__reactFiber'));
-  // biome-ignore lint/suspicious/noExplicitAny: React fiber internals
-  let f: any = fk ? (el as any)[fk] : null;
-  for (let i = 0; f && i < 40; i++, f = f.return)
-    if (typeof f.memoizedProps?.onChange === 'function' && f.memoizedProps.options) return f.memoizedProps;
+function selectProps(el: Element): { onChange: (value: string | number) => void } {
+  let node = fiber(el);
+  for (let i = 0; node && i < 40; i++, node = node.return) {
+    const props = node.memoizedProps;
+    if (typeof props?.onChange === 'function' && props.options) return { onChange: props.onChange };
+  }
   throw ToolError.internal('Select component not found.');
 }
 // "Done" persists the table and redirects to /settings/profile. Right after "Add Skill" the first click is ignored: wait, retry once.
@@ -224,25 +247,31 @@ export const addSkill = defineTool({
   output: z.object({ added: z.boolean(), saved: z.boolean(), seen: z.array(z.string()) }),
   handle: async ({ name, proficiency, years }) => {
     if (!onSkills()) throw ToolError.notFound(SKILLS_ONLY);
+    const want = name.trim();
     // Page may still be hydrating right after navigation.
     for (let i = 0; i < 20 && !buttonByText('Add a skill'); i++) await sleep(500);
-    if (skillNames().includes(name)) throw ToolError.validation(`${name} is already on the profile.`);
-    buttonByText('Add a skill')?.click();
+    if (skillNames().includes(want)) throw ToolError.validation(`${want} is already on the profile.`);
+    const add = buttonByText('Add a skill');
+    if (!add) throw ToolError.notFound('No "Add a skill" button. Reload the Skills page.');
+    add.click();
     await sleep(800);
     const inp = document.querySelector<HTMLInputElement>('input[placeholder="Add Skill"]');
     if (!inp) throw ToolError.notFound('No Add Skill input. Reload the Skills page.');
     inp.focus();
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(inp, name);
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(inp, want);
     inp.dispatchEvent(new Event('input', { bubbles: true }));
     // Search is server-side and can take several seconds; poll for the exact option.
     let opts: HTMLElement[] = [];
     for (let i = 0; i < 16; i++) {
       await sleep(500);
       opts = [...document.querySelectorAll<HTMLElement>('[role=option]')];
-      if (opts.some(o => o.innerText.trim() === name)) break;
+      if (opts.some(o => optionLabel(o.innerText) === optionLabel(want))) break;
     }
-    const seen = opts.map(o => o.innerText.trim()).slice(0, 8);
-    const hit = opts.find(o => o.innerText.trim() === name);
+    const seen = opts
+      .map(o => optionLabel(o.innerText))
+      .filter(Boolean)
+      .slice(0, 8);
+    const hit = opts.find(o => optionLabel(o.innerText) === optionLabel(want));
     if (!hit) return { added: false, saved: false, seen };
     fire(hit);
     await sleep(800);
@@ -254,8 +283,8 @@ export const addSkill = defineTool({
     selectProps(yrs).onChange(years);
     await sleep(400);
     buttonByText('Add Skill')?.click();
-    for (let i = 0; i < 8 && !skillNames().includes(name); i++) await sleep(500);
-    if (!skillNames().includes(name)) return { added: false, saved: false, seen };
+    for (let i = 0; i < 8 && !skillNames().includes(want); i++) await sleep(500);
+    if (!skillNames().includes(want)) return { added: false, saved: false, seen };
     return { added: true, saved: await clickDone(), seen };
   },
 });
@@ -271,10 +300,11 @@ export const removeSkill = defineTool({
   output: z.object({ removed: z.boolean(), saved: z.boolean() }),
   handle: async ({ name }) => {
     if (!onSkills()) throw ToolError.notFound(SKILLS_ONLY);
+    const want = name.trim();
     const row = [...document.querySelectorAll<HTMLElement>('[data-testid="SkillsFormSkillEditRow"]')].find(
-      r => r.querySelector<HTMLElement>('[data-testid="SkillsFormSkillName"]')?.title === name,
+      r => r.querySelector<HTMLElement>('[data-testid="SkillsFormSkillName"]')?.title.trim() === want,
     );
-    if (!row) throw ToolError.notFound(`${name} is not on the profile.`);
+    if (!row) throw ToolError.notFound(`${want} is not on the profile.`);
     const del = row.querySelector<HTMLButtonElement>('[data-testid="skills-form-delete-skill-button"]');
     // Flaky right after page load: retry hover + click.
     for (let i = 0; i < 4 && del?.disabled; i++) {
@@ -296,8 +326,8 @@ export const removeSkill = defineTool({
       await sleep(800);
     }
     // The row disappears after a short delay; poll.
-    for (let i = 0; i < 8 && skillNames().includes(name); i++) await sleep(500);
-    if (skillNames().includes(name)) return { removed: false, saved: false };
+    for (let i = 0; i < 8 && skillNames().includes(want); i++) await sleep(500);
+    if (skillNames().includes(want)) return { removed: false, saved: false };
     return { removed: true, saved: await clickDone() };
   },
 });

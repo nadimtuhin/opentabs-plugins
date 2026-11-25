@@ -82,7 +82,7 @@ Reads and edits the freelancer profile in the open tab. It can change title, ove
 | Tool | Access | What it does |
 | --- | --- | --- |
 | `get_profile` | Read | Title, hourly rate, overview, skills, and employment lines |
-| `set_profile_text` | Write | Updates the title (max 70 characters) or overview (max 5000 characters, no URLs) |
+| `set_profile_text` | Write | Updates the title (max 70 characters) or overview (max 5000 characters; http(s) and www links are rejected) |
 | `set_skills` | Write | Makes the skill chips exactly the given list (max 20) |
 | `set_categories` | Write | Makes the selected sub-categories exactly the given list (max 10) |
 
@@ -96,7 +96,7 @@ Schedules Buffer drafts that already have a date and time. Creating and editing 
 | Tool | Access | What it does |
 | --- | --- | --- |
 | `list_drafts` | Read | Drafts with preview text, channel, and whether each one already has a time |
-| `schedule_drafts` | Write | Schedules timed drafts matched by preview text, max 10 per call. Stops at the first failure |
+| `schedule_drafts` | Write | Schedules timed drafts whose preview starts with the given text, max 10 per call. A longer string matches only a truncated preview. Stops at the first failure |
 
 Open the Drafts tab first. That tab needs a trusted click on `#drafts-tab`.
 
@@ -105,7 +105,7 @@ Open the Drafts tab first. That tab needs a trusted click on `#drafts-tab`.
 ### 6. Company Scout (`company-scout`)
 **Runs on:** `*://*.ycombinator.com/companies/*`, `*://*.squareup.com/us/en/app-marketplace/*`, `*://*.squareup.com/app-marketplace/*`. **Tools:** 1
 
-Reads the open Y Combinator company page or Square App Marketplace listing. It extracts name, tagline, description, keyword matches for platforms and tech, and founder names from common team selectors. It does not make background API calls.
+Reads the open Y Combinator company page or Square App Marketplace listing. It extracts name, tagline, description, keyword matches for platforms and tech, and founder names from common team selectors. It does not make background API calls. The tagline is the subtitle under the heading, or the first sentence of the meta description, and it is not a copy of the company name. `Go`, `Square`, `Toast`, `Clover`, `Epic`, and `AWS` match only with that capitalization. `Node.js` matches the dotted name.
 
 | Tool | Access | What it does |
 | --- | --- | --- |
