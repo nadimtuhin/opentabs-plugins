@@ -180,11 +180,8 @@ export const graphql = async <T = any>(operationName: string, variables: Record<
 
 export const parseMutualCount = (text: string): number => {
   if (!text) return 0;
-  const match = text.match(/(\d+)\s+mutual/i);
-  if (match && match[1]) {
-    return parseInt(match[1], 10);
-  }
-  return 0;
+  const digits = text.match(/(\d[\d,]*)\s+mutual/i)?.[1]?.replace(/,/g, '');
+  return digits ? parseInt(digits, 10) : 0;
 };
 
 export const parseTimeApproxDays = (timeStr?: string): number => {
@@ -226,6 +223,7 @@ export const extractRequestsFromDOM = (): FriendRequestItem[] => {
     }
 
     const links = Array.from(card.querySelectorAll<HTMLAnchorElement>('a[href]'));
+    let rawHref = '';
     let profileLink = '';
     let name = '';
 
@@ -233,15 +231,16 @@ export const extractRequestsFromDOM = (): FriendRequestItem[] => {
       const href = a.getAttribute('href') || '';
       const text = a.innerText?.trim() || '';
       if (href && !href.includes('/friends') && text && !text.includes('\n')) {
+        rawHref = href;
         profileLink = (href.split('?')[0]) ?? '';
         name = text;
         break;
       }
     }
 
-    if (!profileLink && links.length > 0 && links[0]) {
-      const firstHref = links[0].getAttribute('href') || '';
-      profileLink = (firstHref.split('?')[0]) ?? '';
+    if (!rawHref && links.length > 0 && links[0]) {
+      rawHref = links[0].getAttribute('href') || '';
+      profileLink = (rawHref.split('?')[0]) ?? '';
     }
 
     const lines = (card.innerText || '').split('\n').map(l => l.trim()).filter(Boolean);
@@ -249,10 +248,10 @@ export const extractRequestsFromDOM = (): FriendRequestItem[] => {
     const timeLine = lines.find(l => /^[0-9]+[wdhmy]$/.test(l)) || '';
 
     let userId = '';
-    const idMatch = profileLink.match(/id=(\d+)/) || profileLink.match(/facebook\.com\/([a-zA-Z0-9._]+)/);
-    if (idMatch && idMatch[1]) {
-      userId = idMatch[1];
-    }
+    // Read id= from the full href. Stripping the query first turns every profile.php?id= link into "profile.php".
+    const idMatch = rawHref.match(/[?&]id=(\d+)/) || profileLink.match(/facebook\.com\/([a-zA-Z0-9._]+)/);
+    const candidate = idMatch?.[1];
+    if (candidate && candidate !== 'profile.php') userId = candidate;
 
     const finalId = userId || profileLink;
     if (finalId && !seenIds.has(finalId)) {
