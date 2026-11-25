@@ -159,7 +159,7 @@ export const suggestTriage = defineTool({
           action = 'DELETE';
           confidence = 0.8;
           reasons.push(`Stale request (${req.request_time} old) with only ${mutuals} mutual friend(s)`);
-        } else if (mutuals >= 5 && ageDays < 90) {
+        } else if (mutuals >= 5 && ageDays > 0 && ageDays < 90) {
           action = 'ACCEPT';
           confidence = 0.72;
           reasons.push(`Moderate mutual connections (${mutuals} mutual friends) and recent request`);
