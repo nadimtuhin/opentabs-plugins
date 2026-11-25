@@ -1,6 +1,6 @@
 import { defineTool, ToolError } from '@opentabs-dev/plugin-sdk';
 import { z } from 'zod';
-import { counts, onDraftsTab, readDrafts, scheduleOne, sleep } from '../buffer-dom.js';
+import { counts, draftMatches, onDraftsTab, readDrafts, scheduleOne, sleep } from '../buffer-dom.js';
 
 export const scheduleDrafts = defineTool({
   name: 'schedule_drafts',
@@ -26,7 +26,7 @@ export const scheduleDrafts = defineTool({
     const results: { match: string; ok: boolean; when: string; reason?: string }[] = [];
     for (const m of match) {
       // Re-read every time: the list re-renders after each schedule.
-      const hits = readDrafts().filter(d => d.preview.startsWith(m) || m.startsWith(d.preview));
+      const hits = readDrafts().filter(d => draftMatches(d, m));
       if (hits.length !== 1) {
         results.push({
           match: m,

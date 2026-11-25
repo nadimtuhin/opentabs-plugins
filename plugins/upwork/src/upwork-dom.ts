@@ -33,14 +33,25 @@ export function menuItems(scope: ParentNode = document): HTMLElement[] {
   );
 }
 
+export function menuLabel(text: string): string {
+  return text
+    .trim()
+    .replace(/\s*selected$/i, '')
+    .trim()
+    .toLowerCase();
+}
+
+export function tokenNameFromButton(text: string): string {
+  return text
+    .trim()
+    .replace(/^Remove /i, '')
+    .replace(/ Tag$/i, '')
+    .trim();
+}
+
 export async function clickItem(items: HTMLElement[], label: string): Promise<boolean> {
-  const hit = items.find(
-    o =>
-      o.innerText
-        .trim()
-        .replace(/\s*selected$/, '')
-        .toLowerCase() === label.toLowerCase(),
-  );
+  const want = label.trim().toLowerCase();
+  const hit = items.find(o => menuLabel(o.innerText) === want);
   if (!hit) return false;
   (hit.querySelector<HTMLElement>('a, button') ?? hit).click();
   await sleep(500);
@@ -65,12 +76,7 @@ export async function pickDropdown(labelId: string, label: string): Promise<bool
 }
 
 export const tokens = (scope: ParentNode): string[] =>
-  [...scope.querySelectorAll<HTMLElement>('button.air3-token-remove')].map(b =>
-    b.innerText
-      .trim()
-      .replace(/^Remove /, '')
-      .replace(/ Tag$/, ''),
-  );
+  [...scope.querySelectorAll<HTMLElement>('button.air3-token-remove')].map(b => tokenNameFromButton(b.innerText));
 
 export const dialogButton = (text: string): HTMLButtonElement | undefined =>
   [...(dialog()?.querySelectorAll('button') ?? [])].find(b => b.innerText.trim() === text);

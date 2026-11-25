@@ -1,5 +1,6 @@
 import { defineTool, ToolError } from '@opentabs-dev/plugin-sdk';
 import { z } from 'zod';
+import { parseProfileText, profileTextError } from '../profile-text.js';
 import {
   alerts,
   dialog,
@@ -8,6 +9,7 @@ import {
   clickItem,
   setNative,
   sleep,
+  tokenNameFromButton,
   tokens,
   typeInto,
 } from '../upwork-dom.js';
@@ -47,7 +49,7 @@ export const getProfile = defineTool({
   name: 'get_profile',
   displayName: 'Get Profile',
   description:
-    'Read the open Upwork freelancer profile page (/freelancers/~<id>): title, hourly rate, overview, skills, employment history lines, portfolio titles.',
+    'Read the open Upwork freelancer profile page (/freelancers/~<id>): title, hourly rate, overview, skills, and employment history.',
   icon: 'user',
   input: z.object({}),
   output: z.object({
@@ -59,36 +61,7 @@ export const getProfile = defineTool({
   }),
   handle: async () => {
     if (!onProfile()) throw ToolError.notFound('Open https://www.upwork.com/freelancers/~<id> first.');
-    const text = document.body.innerText;
-    const after = (head: string, until: string) => {
-      const i = text.lastIndexOf(`${head}\n`);
-      if (i < 0) return '';
-      const rest = text.slice(i + head.length + 1);
-      const j = rest.indexOf(until);
-      return (j < 0 ? rest : rest.slice(0, j)).trim();
-    };
-    const lines = text.split('\n');
-    const ri = lines.findIndex(l => /^\$\d+\.\d\d\/hr/.test(l.trim()));
-    const moreAt = lines.findIndex((l, i) => i > ri && l.trim() === 'more');
-    return {
-      title: ri > 0 ? (lines[ri - 1] ?? '').trim() : '',
-      rate: ri >= 0 ? (lines[ri] ?? '').trim() : '',
-      overview:
-        ri >= 0 && moreAt > ri
-          ? lines
-              .slice(ri + 1, moreAt)
-              .join('\n')
-              .trim()
-          : '',
-      skills: after('Skills', 'Your project catalog')
-        .split('\n')
-        .map(s => s.trim())
-        .filter(Boolean),
-      employment: after('Employment history', 'Other experiences')
-        .split('\n')
-        .map(s => s.trim())
-        .filter(s => s && !/^(more|Show more|\(\d+\))$/.test(s)),
-    };
+    return parseProfileText(document.body.innerText);
   },
 });
 
@@ -96,7 +69,7 @@ export const setProfileText = defineTool({
   name: 'set_profile_text',
   displayName: 'Set Profile Text',
   description:
-    'Replace the profile title (max 70 chars) or overview (max 5000, no URLs allowed by Upwork) and click Save. Upwork applies it in ~25 seconds; reload to verify.',
+    'Replace the profile title (max 70 chars) or overview (max 5000; http(s) and www links are rejected) and click Save. Upwork applies it in ~25 seconds; reload to verify.',
   icon: 'pencil',
   input: z.object({
     section: z.enum(['title', 'overview']),
@@ -104,9 +77,8 @@ export const setProfileText = defineTool({
   }),
   output: z.object({ saved: z.boolean(), alerts: z.array(z.string()) }),
   handle: async ({ section, text }) => {
-    if (section === 'title' && text.length > 70) throw ToolError.validation('Title is limited to 70 characters.');
-    if (section === 'overview' && /https?:\/\//i.test(text))
-      throw ToolError.validation('Upwork rejects links in the overview. Put links in Portfolio.');
+    const problem = profileTextError(section, text);
+    if (problem) throw ToolError.validation(problem);
     const d = await openEditor(section);
     const el =
       section === 'title'
@@ -135,7 +107,7 @@ export const setSkills = defineTool({
     for (const s of before) {
       if (want.has(s.toLowerCase())) continue;
       [...d.querySelectorAll<HTMLButtonElement>('button.air3-token-remove')]
-        .find(b => b.innerText.trim() === `Remove ${s} Tag`)
+        .find(b => tokenNameFromButton(b.innerText) === s)
         ?.click();
       await sleep(250);
     }
